@@ -87,5 +87,5 @@ class MLBaseMLRunInterface(MLRunInterface):
                 training_set=train_set,
                 label_column= y_train.name if isinstance(y_train, pd.Series) else y_train.columns.to_list(),
                 extra_data=eval_metrics,
-                feature_vecto=data.get("feature_vector", None)
+                feature_vector=data.get("feature_vector", None)
             )
