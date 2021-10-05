@@ -45,7 +45,8 @@ def apply_mlrun(
     if context is None:
         context = mlrun.get_or_create_ctx("mlrun_sklearn")
 
-    if feature_vector and hasattr(feature_vector, "uri"): feature_vector=feature_vector.uri
+    if feature_vector and hasattr(feature_vector, "uri"): 
+        feature_vector=feature_vector.uri
         
     kwargs["X_test"] = X_test
     kwargs["y_test"] = y_test
