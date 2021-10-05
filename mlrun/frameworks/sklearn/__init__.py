@@ -18,7 +18,7 @@ def apply_mlrun(
     y_test=None,
     model_name=None,
     generate_test_set=True,
-    dataset = None,
+    feature_vector = None,
     **kwargs
 ):
     """
@@ -45,11 +45,7 @@ def apply_mlrun(
     if context is None:
         context = mlrun.get_or_create_ctx("mlrun_sklearn")
 
-    if dataset and hasattr(dataset, "uri"): 
-        kwargs["feature_vector"]=dataset.uri
-        
-    elif dataset and isinstance(dataset, str):
-        kwargs["feature_vector"]=dataset
+    if feature_vector and hasattr(feature_vector, "uri"): feature_vector=feature_vector.uri
         
     kwargs["X_test"] = X_test
     kwargs["y_test"] = y_test
