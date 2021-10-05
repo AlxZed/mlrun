@@ -18,6 +18,7 @@ def apply_mlrun(
     y_test=None,
     model_name=None,
     generate_test_set=True,
+    feature_vector = None,
     **kwargs
 ):
     """
@@ -43,9 +44,13 @@ def apply_mlrun(
     if context is None:
         context = mlrun.get_or_create_ctx("mlrun_xgb")
 
+    if feature_vector and hasattr(feature_vector, "uri"): 
+         kwargs["feature_vector"]=feature_vector.uri
+        
     kwargs["X_test"] = X_test
     kwargs["y_test"] = y_test
     kwargs["generate_test_set"] = generate_test_set
+    
     # Add MLRun's interface to the model:
     MLBaseMLRunInterface.add_interface(model, context, model_name, kwargs)
     return model
