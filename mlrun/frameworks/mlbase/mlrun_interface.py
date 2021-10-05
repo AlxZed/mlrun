@@ -73,12 +73,7 @@ class MLBaseMLRunInterface(MLRunInterface):
                         artifact_path=context.artifact_subpath("data"),
                     )
 
-            # Log fitted model and metrics
-            label_column = (
-                y_train.name
-                if isinstance(y_train, pd.Series)
-                else y_train.columns.to_list()
-            )
+            # Log fitted model and metrics                
             context.log_model(
                 model_name or "model",
                 db_key=model_name,
@@ -90,6 +85,7 @@ class MLBaseMLRunInterface(MLRunInterface):
                 metrics=context.results,
                 format="pkl",
                 training_set=train_set,
-                label_column=label_column,
+                label_column= y_train.name if isinstance(y_train, pd.Series) else y_train.columns.to_list(),
                 extra_data=eval_metrics,
+                feature_vector= data.get("feature_vector", None)
             )
