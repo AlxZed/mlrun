@@ -126,6 +126,9 @@ class NuclioSpec(KubeResourceSpec):
         affinity=None,
         disable_auto_mount=False,
         priority_class_name=None,
+        pythonpath=None,
+        workdir=None,
+        image_pull_secret=None,
     ):
 
         super().__init__(
@@ -149,6 +152,9 @@ class NuclioSpec(KubeResourceSpec):
             affinity=affinity,
             disable_auto_mount=disable_auto_mount,
             priority_class_name=priority_class_name,
+            pythonpath=pythonpath,
+            workdir=workdir,
+            image_pull_secret=image_pull_secret,
         )
 
         self.base_spec = base_spec or ""
@@ -199,8 +205,9 @@ class NuclioStatus(FunctionStatus):
         address=None,
         internal_invocation_urls=None,
         external_invocation_urls=None,
+        build_pod=None,
     ):
-        super().__init__(state)
+        super().__init__(state, build_pod)
 
         self.nuclio_name = nuclio_name
 
@@ -445,8 +452,11 @@ class RemoteRuntime(KubeResource):
         # For nuclio functions, we just add the project secrets as env variables. Since there's no MLRun code
         # to decode the secrets and special env variable names in the function, we just use the same env variable as
         # the key name (encode_key_names=False)
+        # If function_kind is mlrun then this is MLRun code (nuclio:mlrun), so we still encode key names.
+        encode_key_names = self.spec.function_kind == "mlrun"
+
         self._add_project_k8s_secrets_to_spec(
-            None, project=self.metadata.project, encode_key_names=False
+            None, project=self.metadata.project, encode_key_names=encode_key_names
         )
 
     def deploy(
