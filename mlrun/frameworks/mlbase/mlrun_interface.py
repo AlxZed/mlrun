@@ -49,6 +49,10 @@ class MLBaseMLRunInterface(MLRunInterface):
             # Identify splits and build test set
             X_train = args[0]
             y_train = args[1]
+
+            if isinstance(X_train, np.ndarray): X_train=pd.DataFrame(X_train)
+            if isinstance(y_train, np.ndarray): y_train=pd.DataFrame(y_train)
+
             train_set = pd.concat([X_train, y_train], axis=1)
             train_set.reset_index(drop=True, inplace=True)
 
