@@ -19,7 +19,7 @@ class MLMLRunInterface:
 
         :param x: train data as a pd.DataFrame
         :param y: label column as a pd.DataFrame
-        :return: merged dataframe of x and y
+        :return full_df: merged dataframe of x and y
         """
         # Checking if indexes are aligned
         assert set(x.index.tolist()) == set(
