@@ -20,16 +20,16 @@ class MLMLRunInterface:
         :param y: an np array containing y targets
         :return: x,y as dataframes
         """
-        x = pd.DataFrame(x, columns=["param_%d" % (i + 1) for i in range(x.shape[1])])
+        df_x = pd.DataFrame(x, columns=["param_%d" % (i + 1) for i in range(x.shape[1])])
 
         # if y has one column (100,)
         if len(y.shape) == 1:
-            y = pd.DataFrame(y, columns=["y"])
+            df_y = pd.DataFrame(y, columns=["y"])
 
         # if y has multiple columns (100,5)
         elif len(y.shape) > 1:
-            y = pd.DataFrame(y, columns=["y_%d" % (i + 1) for i in range(y.shape[1])])
-        return x, y
+            df_y = pd.DataFrame(y, columns=["y_%d" % (i + 1) for i in range(y.shape[1])])
+        return df_x, df_y
 
     @staticmethod
     def merge_dataframes(x: pd.DataFrame, y: pd.DataFrame) -> pd.DataFrame:
