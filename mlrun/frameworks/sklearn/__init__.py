@@ -18,7 +18,6 @@ def apply_mlrun(
     model_name=None,
     generate_test_set=True,
     feature_vector = None,
-    here=True,
     artifact_list=None,
     **kwargs
 ):
