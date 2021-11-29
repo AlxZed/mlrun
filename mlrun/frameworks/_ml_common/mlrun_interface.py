@@ -96,20 +96,12 @@ class MLMLRunInterface:
             # Get passed X,y from model.fit(X,y)
             x_train, y_train = args[0], args[1]
 
-            # np.array -> Dataframe
-            if isinstance(x_train, np.ndarray) and isinstance(y_train, np.ndarray):
-                x_train, y_train = MLMLRunInterface.numpy_array_to_df(x_train, y_train)
-
             # Merge X and y for logging of the test set
             train_set = MLMLRunInterface.merge_dataframes(x_train, y_train)
 
             if data.get("X_test") is not None and data.get("y_test") is not None:
                 # Identify splits and build test set
                 x_test, y_test = data["X_test"], data["y_test"]
-
-                # np.array -> Dataframe
-                if isinstance(x_test, np.ndarray) and isinstance(y_test, np.ndarray):
-                    x_test, y_test = MLMLRunInterface.numpy_array_to_df(x_test, y_test)
 
                 # Merge X and y for logging of the test set
                 test_set = MLMLRunInterface.merge_dataframes(x_test, y_test)
