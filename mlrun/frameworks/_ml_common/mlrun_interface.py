@@ -13,6 +13,25 @@ class MLMLRunInterface:
     """
 
     @staticmethod
+    def numpy_array_to_df(x: np.ndarray, y: np.ndarray) -> pd.DataFrame:
+        """
+        Transform and rename numpy arrays to DataFrames.
+        :param x: an np array containing parameters
+        :param y: an np array containing y targets
+        :return: x,y as dataframes
+        """
+        x = pd.DataFrame(x, columns=["param_%d" % (i + 1) for i in range(x.shape[1])])
+
+        # if y has one column (100,)
+        if len(y.shape) == 1:
+            y = pd.DataFrame(y, columns=["y"])
+
+        # if y has multiple columns (100,5)
+        elif len(y.shape) > 1:
+            y = pd.DataFrame(y, columns=["y_%d" % (i + 1) for i in range(y.shape[1])])
+        return x, y
+
+    @staticmethod
     def merge_dataframes(x: pd.DataFrame, y: pd.DataFrame) -> pd.DataFrame:
         """
         Merge two dataframes while making sure their indices are aligned.
@@ -34,13 +53,7 @@ class MLMLRunInterface:
 
     @classmethod
     def add_interface(
-        cls,
-        model_handler: MLModelHandler,
-        context,
-        model_name,
-        data={},
-        *args,
-        **kwargs
+        cls, model_handler: MLModelHandler, context, data={}, *args, **kwargs
     ):
         """
         Wrap the given model with MLRun model features, providing it with MLRun model attributes including its
@@ -80,7 +93,7 @@ class MLMLRunInterface:
 
             # np.array -> Dataframe
             if isinstance(x_train, np.ndarray) and isinstance(y_train, np.ndarray):
-                x_train, y_train = pd.DataFrame(x_train), pd.DataFrame(y_train)
+                x_train, y_train = MLMLRunInterface.numpy_array_to_df(x_train, y_train)
 
             # Merge X and y for logging of the test set
             train_set = MLMLRunInterface.merge_dataframes(x_train, y_train)
@@ -92,7 +105,7 @@ class MLMLRunInterface:
 
                 # np.array -> Dataframe
                 if isinstance(x_test, np.ndarray) and isinstance(y_test, np.ndarray):
-                    x_test, y_test = pd.DataFrame(x_test), pd.DataFrame(y_test)
+                    x_test, y_test = MLMLRunInterface.numpy_array_to_df(x_test, y_test)
 
                 # Merge X and y for logging of the test set
                 test_set = MLMLRunInterface.merge_dataframes(x_test, y_test)
