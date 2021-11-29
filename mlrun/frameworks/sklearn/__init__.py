@@ -19,7 +19,6 @@ def apply_mlrun(
     X_test=None,
     y_test=None,
     model_name=None,
-    data={},
     generate_test_set=True,
     **kwargs
 ):
