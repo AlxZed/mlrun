@@ -35,7 +35,6 @@ class MLMLRunInterface:
     def merge_dataframes(x: pd.DataFrame, y: pd.DataFrame) -> pd.DataFrame:
         """
         Merge two dataframes while making sure their indices are aligned.
-
         :param x: train data as a pd.DataFrame
         :param y: label column as a pd.DataFrame
         :return full_df: merged dataframe of x and y
@@ -53,7 +52,13 @@ class MLMLRunInterface:
 
     @classmethod
     def add_interface(
-        cls, model_handler: MLModelHandler, context, data={}, *args, **kwargs
+        cls,
+        model_handler: MLModelHandler,
+        context,
+        model_name,
+        data={},
+        *args,
+        **kwargs
     ):
         """
         Wrap the given model with MLRun model features, providing it with MLRun model attributes including its
@@ -99,7 +104,6 @@ class MLMLRunInterface:
             train_set = MLMLRunInterface.merge_dataframes(x_train, y_train)
 
             if data.get("X_test") is not None and data.get("y_test") is not None:
-
                 # Identify splits and build test set
                 x_test, y_test = data["X_test"], data["y_test"]
 
@@ -132,7 +136,7 @@ class MLMLRunInterface:
                 if y_train.name is not None:
                     label_column = [str(y_train.name)]
                 else:
-                    raise ValueError("No column name for y was specified")
+                    raise ValueError("No column name for y_train was specified")
 
             model_handler.log(
                 algorithm=str(model.__class__.__name__),
