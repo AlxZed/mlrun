@@ -18,7 +18,6 @@ def apply_mlrun(
     context: mlrun.MLClientCtx = None,
     X_test=None,
     y_test=None,
-    here=True,
     model_name=None,
     generate_test_set=True,
     **kwargs
