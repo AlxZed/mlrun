@@ -39,6 +39,8 @@ class MLBaseMLRunInterface(MLRunInterface):
         def _post_fit(*args, **kwargs):
             context.set_label("class", str(model.__class__.__name__))
             
+            print('here')
+            
             # Identify splits and build test set
             X_train = args[0]
             y_train = args[1]
