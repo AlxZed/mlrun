@@ -30,7 +30,6 @@ import mlrun.errors
 import mlrun.projects.project
 from mlrun import RunObject
 from mlrun.api import schemas
-from mlrun.artifacts import Artifact
 from mlrun.db.httpdb import HTTPRunDB
 from tests.conftest import tests_root_directory, wait_for_server
 
@@ -92,7 +91,7 @@ def docker_fixture():
             "-f",
             "dockerfiles/mlrun-api/Dockerfile",
             "--build-arg",
-            "MLRUN_PYTHON_VERSION=3.7.9",
+            "MLRUN_PYTHON_VERSION=3.7.11",
             "--tag",
             docker_tag,
             ".",
@@ -239,43 +238,6 @@ def test_runs(create_server):
     assert not runs, "found runs in after delete"
 
 
-def test_artifact(create_server):
-    server: Server = create_server()
-    db = server.conn
-
-    prj, uid, key, body = "p7", "u199", "k800", "cucumber"
-    artifact = Artifact(key, body)
-
-    db.store_artifact(key, artifact, uid, project=prj)
-    # TODO: Need a run file
-    # db.del_artifact(key, project=prj)
-
-
-def test_artifacts(create_server):
-    server: Server = create_server()
-    db = server.conn
-    prj, uid, key, body = "p9", "u19", "k802", "tomato"
-    artifact = Artifact(key, body, target_path="a.txt")
-
-    db.store_artifact(key, artifact, uid, project=prj)
-    db.store_artifact(key, artifact, uid, project=prj, iter=42)
-    artifacts = db.list_artifacts(project=prj, tag="*")
-    assert len(artifacts) == 2, "bad number of artifacts"
-    assert artifacts.objects()[0].key == key, "not a valid artifact object"
-    assert artifacts.dataitems()[0].url, "not a valid artifact dataitem"
-
-    artifacts = db.list_artifacts(project=prj, tag="*", iter=0)
-    assert len(artifacts) == 1, "bad number of artifacts"
-
-    # Only 1 will be returned since it's only looking for iter 0
-    artifacts = db.list_artifacts(project=prj, tag="*", best_iteration=True)
-    assert len(artifacts) == 1, "bad number of artifacts"
-
-    db.del_artifacts(project=prj, tag="*")
-    artifacts = db.list_artifacts(project=prj, tag="*")
-    assert len(artifacts) == 0, "bad number of artifacts after del"
-
-
 def test_basic_auth(create_server):
     user, password = "bugs", "bunny"
     env = {
@@ -361,6 +323,16 @@ def test_version_compatibility_validation():
         {"server_version": "0.6.3", "client_version": "0.4.8", "compatible": True},
         {"server_version": "1.0.0", "client_version": "0.5.0", "compatible": False},
         {"server_version": "0.5.0", "client_version": "1.0.0", "compatible": False},
+        {
+            "server_version": "0.7.1",
+            "client_version": "0.0.0+unstable",
+            "compatible": True,
+        },
+        {
+            "server_version": "0.0.0+unstable",
+            "client_version": "0.7.1",
+            "compatible": True,
+        },
     ]
     for case in cases:
         assert case["compatible"] == HTTPRunDB._validate_version_compatibility(

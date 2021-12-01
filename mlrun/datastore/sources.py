@@ -59,7 +59,7 @@ class BaseSourceDriver(DataSource):
     def to_step(self, key_field=None, time_field=None, context=None):
         import storey
 
-        return storey.SyncEmitSource()
+        return storey.SyncEmitSource(context=context)
 
     def get_table_object(self):
         """get storey Table object"""
@@ -71,6 +71,17 @@ class BaseSourceDriver(DataSource):
     def to_spark_df(self, session, named_view=False):
         if self.support_spark:
             df = session.read.load(**self.get_spark_options())
+
+            if self.start_time or self.end_time:
+                self.start_time = (
+                    datetime.min if self.start_time is None else self.start_time
+                )
+                self.end_time = datetime.max if self.end_time is None else self.end_time
+                df = df.filter(
+                    (df[self.time_field] >= self.start_time)
+                    & (df[self.time_field] < self.end_time)
+                )
+
             if named_view:
                 df.createOrReplaceTempView(self.name)
             return df
@@ -93,9 +104,12 @@ class CSVSource(BaseSourceDriver):
         :parameter key_field: the CSV field to be used as the key for events. May be an int (field index) or string
             (field name) if with_header is True. Defaults to None (no key). Can be a list of keys.
         :parameter time_field: the CSV field to be parsed as the timestamp for events. May be an int (field index) or
-            string (field name) if with_header is True. Defaults to None (no timestamp field).
+            string (field name) if with_header is True. Defaults to None (no timestamp field). The field will be parsed
+            from isoformat (ISO-8601 as defined in datetime.fromisoformat()). In case the format is not isoformat,
+            timestamp_format (as defined in datetime.strptime()) should be passed in attributes.
         :parameter schedule: string to configure scheduling of the ingestion job.
-        :parameter attributes: additional parameters to pass to storey.
+        :parameter attributes: additional parameters to pass to storey. For example:
+            attributes={"timestamp_format": '%Y%m%d%H'}
         :parameter parse_dates: Optional. List of columns (names or integers, other than time_field) that will be
             attempted to parse as date column.
         """
@@ -189,6 +203,13 @@ class ParquetSource(BaseSourceDriver):
         start_time: Optional[Union[datetime, str]] = None,
         end_time: Optional[Union[datetime, str]] = None,
     ):
+
+        if isinstance(start_time, str):
+            start_time = datetime.fromisoformat(start_time)
+
+        if isinstance(end_time, str):
+            end_time = datetime.fromisoformat(end_time)
+
         super().__init__(
             name,
             path,
@@ -398,7 +419,7 @@ class CustomSource(BaseSourceDriver):
         attributes = copy(self.attributes)
         class_name = attributes.pop("class_name")
         class_object = get_class(class_name)
-        return class_object(**attributes,)
+        return class_object(context=context, **attributes)
 
 
 class DataFrameSource:
@@ -477,10 +498,13 @@ class OnlineSource(BaseSourceDriver):
             if config.datastore.async_source_mode == "enabled"
             else storey.SyncEmitSource
         )
+        source_args = self.attributes.get("source_args", {})
         return source_class(
+            context=context,
             key_field=self.key_field or key_field,
             time_field=self.time_field or time_field,
             full_event=True,
+            **source_args,
         )
 
     def add_nuclio_trigger(self, function):
@@ -493,19 +517,14 @@ class HttpSource(OnlineSource):
     kind = "http"
 
     def add_nuclio_trigger(self, function):
+        trigger_args = self.attributes.get("trigger_args")
+        if trigger_args:
+            function.with_http(**trigger_args)
         return function
 
 
 class StreamSource(OnlineSource):
-    """
-       Sets stream source for the flow. If stream doesn't exist it will create it
-
-       :parameter name: stream name. Default "stream"
-       :parameter group: consumer group. Default "serving"
-       :parameter seek_to: from where to consume the stream. Default earliest
-       :parameter shards: number of shards in the stream. Default 1
-       :parameter retention_in_hours: if stream doesn't exist and it will be created set retention time. Default 24h
-    """
+    """Sets stream source for the flow. If stream doesn't exist it will create it"""
 
     kind = "v3ioStream"
 
@@ -516,13 +535,25 @@ class StreamSource(OnlineSource):
         seek_to="earliest",
         shards=1,
         retention_in_hours=24,
+        extra_attributes: dict = None,
         **kwargs,
     ):
+        """
+           Sets stream source for the flow. If stream doesn't exist it will create it
+
+           :param name: stream name. Default "stream"
+           :param group: consumer group. Default "serving"
+           :param seek_to: from where to consume the stream. Default earliest
+           :param shards: number of shards in the stream. Default 1
+           :param retention_in_hours: if stream doesn't exist and it will be created set retention time. Default 24h
+           :param extra_attributes: additional nuclio trigger attributes (key/value dict)
+        """
         attrs = {
             "group": group,
             "seek_to": seek_to,
             "shards": shards,
             "retention_in_hours": retention_in_hours,
+            "extra_attributes": extra_attributes or {},
         }
         super().__init__(name, attributes=attrs, **kwargs)
 
@@ -544,21 +575,13 @@ class StreamSource(OnlineSource):
             self.attributes["group"],
             self.attributes["seek_to"],
             self.attributes["shards"],
+            extra_attributes=self.attributes.get("extra_attributes", {}),
         )
         return function
 
 
 class KafkaSource(OnlineSource):
-    """
-       Sets kafka source for the flow
-       :parameter brokers: list of broker IP addresses
-       :parameter topics: list of topic names on which to listen.
-       :parameter group: consumer group. Default "serving"
-       :parameter initial_offset: from where to consume the stream. Default earliest
-       :parameter partitions: Optional, A list of partitions numbers for which the function receives events.
-       :parameter sasl_user: Optional, user name to use for sasl authentications
-       :parameter sasl_pass: Optional, password to use for sasl authentications
-    """
+    """Sets kafka source for the flow"""
 
     kind = "kafka"
 
@@ -573,6 +596,16 @@ class KafkaSource(OnlineSource):
         sasl_pass=None,
         **kwargs,
     ):
+        """Sets kafka source for the flow
+
+           :param brokers: list of broker IP addresses
+           :param topics: list of topic names on which to listen.
+           :param group: consumer group. Default "serving"
+           :param initial_offset: from where to consume the stream. Default earliest
+           :param partitions: Optional, A list of partitions numbers for which the function receives events.
+           :param sasl_user: Optional, user name to use for sasl authentications
+           :param sasl_pass: Optional, password to use for sasl authentications
+        """
         if isinstance(topics, str):
             topics = [topics]
         if isinstance(brokers, str):
