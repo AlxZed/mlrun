@@ -25,6 +25,7 @@ from kubernetes import client
 
 import mlrun
 from mlrun.db import get_run_db
+from mlrun.frameworks.parallel_coordinates import gen_pcp_plot
 from mlrun.k8s_utils import get_k8s_helper
 from mlrun.runtimes.constants import MPIJobCRDVersions
 
@@ -233,7 +234,6 @@ def results_to_iter(results, runspec, execution):
         execution.set_state("completed", commit=True)
         logger.warning("warning!, zero iteration results")
         return
-
     if hasattr(pd, "json_normalize"):
         df = pd.json_normalize(iter).sort_values("iter")
     else:
@@ -266,6 +266,12 @@ def results_to_iter(results, runspec, execution):
                 viewer="table",
             ),
             local_path="iteration_results.csv",
+        )
+        # may also fail due to missing plotly
+        execution.log_artifact(
+            "parallel_coordinates",
+            body=gen_pcp_plot(df, index_col="iter"),
+            local_path="parallel_coordinates.html",
         )
     except Exception:
         pass
@@ -468,7 +474,12 @@ def enrich_function_from_dict(function, function_dict):
         if override_value:
             if attribute == "env":
                 for env_dict in override_value:
-                    function.set_env(env_dict["name"], env_dict["value"])
+                    if env_dict.get("value") is not None:
+                        function.set_env(env_dict["name"], env_dict["value"])
+                    else:
+                        function.set_env(
+                            env_dict["name"], value_from=env_dict["valueFrom"],
+                        )
             elif attribute == "volumes":
                 function.spec.update_vols_and_mounts(override_value, [])
             elif attribute == "volume_mounts":

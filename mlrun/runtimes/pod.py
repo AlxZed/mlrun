@@ -298,9 +298,11 @@ class KubeResource(BaseRuntime):
         )
         return self._set_env(name, value_from=value_from)
 
-    def set_env(self, name, value):
+    def set_env(self, name, value=None, value_from=None):
         """set pod environment var from value"""
-        return self._set_env(name, value=str(value))
+        if value is not None:
+            return self._set_env(name, value=str(value))
+        return self._set_env(name, value_from=value_from)
 
     def is_env_exists(self, name):
         """Check whether there is an environment variable define for the given key"""
@@ -477,6 +479,9 @@ class KubeResource(BaseRuntime):
     def _add_project_k8s_secrets_to_spec(
         self, secrets, runobj=None, project=None, encode_key_names=True
     ):
+        # Needs to happen here to avoid circular dependencies
+        from mlrun.api.crud.secrets import Secrets
+
         # the secrets param may be an empty dictionary (asking for all secrets of that project) -
         # it's a different case than None (not asking for project secrets at all).
         if (
@@ -492,7 +497,11 @@ class KubeResource(BaseRuntime):
 
         secret_name = self._get_k8s().get_project_secret_name(project_name)
         existing_secret_keys = (
-            self._get_k8s().get_project_secret_keys(project_name) or []
+            Secrets()
+            .list_secret_keys(
+                project_name, mlrun.api.schemas.SecretProviderName.kubernetes
+            )
+            .secret_keys
         )
 
         # If no secrets were passed or auto-adding all secrets, we need all existing keys
@@ -507,6 +516,11 @@ class KubeResource(BaseRuntime):
         for key, env_var_name in secrets.items():
             if key in existing_secret_keys:
                 self.set_env_from_secret(env_var_name, secret_name, key)
+
+        # Keep a list of the variables that relate to secrets, so that the MLRun context (when using nuclio:mlrun)
+        # can be initialized with those env variables as secrets
+        if not encode_key_names:
+            self.set_env("MLRUN_PROJECT_SECRETS_LIST", ",".join(secrets.keys()))
 
     def _add_vault_params_to_spec(self, runobj=None, project=None):
         project_name = project or runobj.metadata.project
@@ -576,6 +590,26 @@ class KubeResource(BaseRuntime):
         mount_params_dict = _filter_modifier_params(modifier, mount_params_dict)
 
         self.apply(modifier(**mount_params_dict))
+
+    def validate_and_enrich_service_account(
+        self, allowed_service_accounts, default_service_account
+    ):
+        if not self.spec.service_account:
+            if default_service_account:
+                self.spec.service_account = default_service_account
+                logger.info(
+                    f"Setting default service account to function: {default_service_account}"
+                )
+            return
+
+        if (
+            allowed_service_accounts
+            and self.spec.service_account not in allowed_service_accounts
+        ):
+            raise mlrun.errors.MLRunInvalidArgumentError(
+                f"Function service account {self.spec.service_account} is not in allowed "
+                + f"service accounts {allowed_service_accounts}"
+            )
 
 
 def kube_resource_spec_to_pod_spec(
