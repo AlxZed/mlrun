@@ -5,7 +5,7 @@ import pandas as pd
 
 from .model_handler import MLModelHandler
 from .plots import eval_model_v2
-from plan import ProductionStages
+from .plan import ProductionStages
 
 class MLMLRunInterface:
     """
