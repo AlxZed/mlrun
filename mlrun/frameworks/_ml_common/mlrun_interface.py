@@ -50,6 +50,9 @@ class MLMLRunInterface:
                 # Original fit method
                 setattr(model, "fit", fit_method)
 
+                plans_manager.generate(model=model, context=context, mystage=ProductionStages.PRE_FIT,
+                                       apply_args=apply_args, **kwargs)
+
                 # Post fit
                 _post_fit(*args, **kwargs)
 
@@ -84,7 +87,7 @@ class MLMLRunInterface:
                 test_set.reset_index(drop=True, inplace=True)
 
                 # Evaluate model results and get the evaluation metrics
-                eval_metrics = eval_model_v2(context, x_test, y_test, model)
+                # eval_metrics = eval_model_v2(context, x_test, y_test, model)
 
                 if apply_args.get("generate_test_set"):
                     # Log test dataset
