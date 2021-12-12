@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from .._ml_common.plan import ArtifactPlan, ProductionStages
-import scikitplot as skplt
+import scikitplot
 
 class ArtifactLibrary(ABC):
     """
@@ -38,7 +38,7 @@ class ArtifactLibrary(ABC):
 
             if hasattr(model, "predict_proba"):
                 y_probas = model.predict_proba(apply_args['X_test'])
-                skplt.metrics.plot_roc_curve(apply_args['y_test'], y_probas)
+                scikitplot.metrics.plot_roc(apply_args['y_test'], y_probas)
             else:
                 print('wrong model')
 
