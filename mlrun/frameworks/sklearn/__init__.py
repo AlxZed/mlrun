@@ -8,7 +8,8 @@ import mlrun
 from .._ml_common.mlrun_interface import MLMLRunInterface
 from .._ml_common.pkl_model_server import PickleModelServer
 from .model_handler import SKLearnModelHandler
-from library import SkLearnArtifactLibrary
+from .._ml_common.library import SkLearnArtifactLibrary
+from .._ml_common.plans_manager import ArtifactsPlansManager
 
 # Temporary placeholder, SklearnModelServer may deviate from PklModelServer in upcoming versions.
 SklearnModelServer = PickleModelServer
@@ -21,8 +22,9 @@ def apply_mlrun(
     y_test=None,
     model_name=None,
     generate_test_set=True,
+    artifact_list=[],
     **kwargs
-):
+) -> SKLearnModelHandler:
     """
     Wrap the given model with MLRun model, saving the model's attributes and methods while giving it mlrun's additional
     features.
@@ -54,7 +56,6 @@ def apply_mlrun(
     # Assign artifact_list
     artifact_list = artifact_list if artifact_list is not None else SkLearnArtifactLibrary.default()
     plans_manager = ArtifactsPlansManager(plans=artifact_list)
-
     
     mh = SKLearnModelHandler(
         model_name=model_name or "model", model=model, context=context

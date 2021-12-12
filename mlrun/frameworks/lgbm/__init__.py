@@ -13,6 +13,8 @@ import mlrun
 
 from .._ml_common import MLMLRunInterface, PickleModelServer
 from .model_handler import LGBMModelHandler
+from .._ml_common.library import LGBMArtifactLibrary
+from .._ml_common.plans_manager import ArtifactsPlansManager
 
 # Temporary placeholder, LGBMModelServer may
 # deviate from PickleModelServer in upcoming versions.
@@ -26,8 +28,10 @@ def apply_mlrun(
     y_test: Union[np.ndarray, pd.DataFrame] = None,
     model_name: str = None,
     generate_test_set: bool = True,
+    artifact_list=[],
     **kwargs
-):
+) -> LGBMModelHandler:
+
     """
     Wrap the given model with MLRun model, saving the model's
     attributes and methods while giving it mlrun's additional features.
@@ -55,10 +59,14 @@ def apply_mlrun(
     kwargs["y_test"] = y_test
     kwargs["generate_test_set"] = generate_test_set
 
+    # Assign artifact_list
+    artifact_list = artifact_list if artifact_list is not None else LGBMArtifactLibrary.default()
+    plans_manager = ArtifactsPlansManager(plans=artifact_list)
+
     mh = LGBMModelHandler(
         model_name=model_name or "model", model=model, context=context
     )
 
     # Add MLRun's interface to the model:
-    MLMLRunInterface.add_interface(mh, context, model_name, kwargs)
+    MLMLRunInterface.add_interface(mh, context, model_name, plans_manager, kwargs)
     return mh

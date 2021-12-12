@@ -8,7 +8,8 @@ import mlrun
 from .._ml_common import MLMLRunInterface
 from .._ml_common.pkl_model_server import PickleModelServer
 from .model_handler import XGBoostModelHandler
-from library import XGBArtifactLibrary
+from .._ml_common.library import XGBArtifactLibrary
+from .._ml_common.plans_manager import ArtifactsPlansManager
 
 # Temporary placeholder, XGBModelServer may deviate from PklModelServer in upcoming versions.
 XGBModelServer = PickleModelServer
@@ -21,8 +22,9 @@ def apply_mlrun(
     y_test=None,
     model_name=None,
     generate_test_set=True,
+    artifact_list=[],
     **kwargs
-) -> XGBoostModelHandler:
+    ) -> XGBoostModelHandler:
     """
     Wrap the given model with MLRun model, saving the model's attributes and methods while giving it mlrun's additional
     features.
