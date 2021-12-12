@@ -1,10 +1,6 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from abc import ABC, abstractmethod
-from sklearn.metrics import confusion_matrix
 from sklearn import metrics
 from itertools import cycle
 from typing import List
@@ -125,3 +121,27 @@ class ArtifactLibrary(ABC):
                 skplt.metrics.plot_roc_curve(apply_args['y_test'], y_probas)
             else:
                 print('wrong model')
+
+
+
+
+class SkLearnArtifactLibrary(ArtifactLibrary):
+    @classmethod
+    def default(cls) -> List[ArtifactPlan]:
+        return [ArtifactLibrary.ConfusionMatrix(cmap='Blues')]
+
+    @staticmethod
+    def confusion_matrix(a: int = 9, b: float = 9.9, c: str = "9"):
+        return ConfusionMatrixPlan(a=a, b=b, c=c)
+
+
+class XGBArtifactLibrary(ArtifactLibrary):
+    @classmethod
+    def default(cls) -> List[ArtifactPlan]:
+        return [ArtifactLibrary.ConfusionMatrix(cmap='Blues')]
+
+
+class LGBMArtifactLibrary(ArtifactLibrary):
+    @classmethod
+    def default(cls) -> List[ArtifactPlan]:
+        return [ArtifactLibrary.ConfusionMatrix(cmap='Blues')]
