@@ -10,7 +10,8 @@ from itertools import cycle
 from typing import List
 from mlrun.artifacts import PlotArtifact
 from .._ml_common.plan import ArtifactPlan, ProductionStages
-
+import scikitplot as skplt
+import matplotlib.pyplot as plt
 
 class ArtifactLibrary(ABC):
     """
@@ -103,7 +104,6 @@ class ArtifactLibrary(ABC):
 
 
 
-
     class ROCCurves(ArtifactPlan):
         """
         """
@@ -119,5 +119,9 @@ class ArtifactLibrary(ABC):
             return stage == ProductionStages.POST_FIT
 
         def produce(self, model, context, apply_args, plots_artifact_path="", **kwargs):
-            return self._extra_data, feature_imp
 
+            if hasattr(model, "predict_proba"):
+                y_probas = model.predict_proba(apply_args['X_test'])
+                skplt.metrics.plot_roc_curve(apply_args['y_test'], y_probas)
+            else:
+                print('wrong model')
