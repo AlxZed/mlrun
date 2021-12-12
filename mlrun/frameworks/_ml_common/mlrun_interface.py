@@ -19,7 +19,7 @@ class MLMLRunInterface:
         context,
         model_name,
         plans_manager,
-        data={},
+        apply_args={},
         *args,
         **kwargs
     ):
@@ -31,7 +31,7 @@ class MLMLRunInterface:
         :param context:     MLRun context to work with. If no context is given it will be retrieved via
                             'mlrun.get_or_create_ctx(None)'
         :param model_name:  name under whcih the model will be saved within the databse.
-        :param data:        Optional: The train_test_split X_train, X_test, y_train, y_test can be passed,
+        :param apply_args:        Optional: The train_test_split X_train, X_test, y_train, y_test can be passed,
                                       or the test data X_test, y_test can be passed.
 
         :return: The wrapped model.
@@ -75,9 +75,9 @@ class MLMLRunInterface:
 
             plans_manager.generate(model=model, context=context, mystage=ProductionStages.POST_FIT, apply_args=apply_args, **kwargs)
 
-            if data.get("X_test") is not None and data.get("y_test") is not None:
+            if apply_args.get("X_test") is not None and apply_args.get("y_test") is not None:
                 # Identify splits and build test set
-                x_test, y_test = data["X_test"], data["y_test"]
+                x_test, y_test = apply_args["X_test"], apply_args["y_test"]
 
                 # Merge X and y for logging of the test set
                 test_set = pd.concat([x_test, y_test], axis=1)
@@ -86,7 +86,7 @@ class MLMLRunInterface:
                 # Evaluate model results and get the evaluation metrics
                 eval_metrics = eval_model_v2(context, x_test, y_test, model)
 
-                if data.get("generate_test_set"):
+                if apply_args.get("generate_test_set"):
                     # Log test dataset
                     context.log_dataset(
                         "test_set",

@@ -61,5 +61,5 @@ def apply_mlrun(
     )
 
     # Add MLRun's interface to the model:
-    MLMLRunInterface.add_interface(mh, context, model_name, plans_manager, kwargs)
+    MLMLRunInterface.add_interface(mh, context, model_name, plans_manager, apply_args=kwargs)
     return mh
