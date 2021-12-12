@@ -5,7 +5,7 @@ import pandas as pd
 
 from .model_handler import MLModelHandler
 from .plots import eval_model_v2
-
+from plan import ProductionStages
 
 class MLMLRunInterface:
     """
@@ -18,6 +18,7 @@ class MLMLRunInterface:
         model_handler: MLModelHandler,
         context,
         model_name,
+        plans_manager,
         data={},
         *args,
         **kwargs
@@ -36,6 +37,9 @@ class MLMLRunInterface:
         :return: The wrapped model.
         """
         model = model_handler.model
+
+        # Validate artifacts to be produced
+        plans_manager.validate()
 
         # Wrap the fit method:
         def fit_wrapper(fit_method, **kwargs):
@@ -68,6 +72,8 @@ class MLMLRunInterface:
             # Merge X and y for logging of the train set
             train_set = pd.concat([x, y], axis=1)
             train_set.reset_index(drop=True, inplace=True)
+
+            plans_manager.generate(model=model, context=context, mystage=ProductionStages.POST_FIT, apply_args=apply_args, **kwargs)
 
             if data.get("X_test") is not None and data.get("y_test") is not None:
                 # Identify splits and build test set
