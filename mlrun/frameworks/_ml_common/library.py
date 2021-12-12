@@ -11,6 +11,7 @@ from .._ml_common.plan import ArtifactPlan, ProductionStages
 import plotly.graph_objects as go
 import pandas as pd
 from sklearn.metrics import roc_curve, roc_auc_score
+from mlrun.artifacts import Artifact, PlotlyArtifact
 
 class ArtifactLibrary(ABC):
     """
@@ -76,10 +77,9 @@ class ArtifactLibrary(ABC):
                 xaxis=dict(constrain='domain'),
                 width=700, height=500
             )
-            fig.show()
-
-
-
+            # fig.show()
+            artifact = PlotlyArtifact(key=f"artifact_name.html", figure=fig)
+            return artifact
 
 class ConfusionMatrix(ArtifactPlan):
     """
