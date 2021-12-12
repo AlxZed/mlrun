@@ -49,10 +49,14 @@ def apply_mlrun(
     kwargs["y_test"] = y_test
     kwargs["generate_test_set"] = generate_test_set
 
+    # Assign artifact_list
+    artifact_list = artifact_list if artifact_list is not None else XGBArtifactLibrary.default()
+    plans_manager = ArtifactsPlansManager(plans=artifact_list)
+        
     mh = XGBoostModelHandler(
         model_name=model_name or "model", model=model, context=context
     )
 
     # Add MLRun's interface to the model:
-    MLMLRunInterface.add_interface(mh, context, model_name, kwargs)
+    MLMLRunInterface.add_interface(mh, context, model_name, plans_manager, kwargs)
     return mh
