@@ -3,15 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from .plan import ProductionStages
 from abc import ABC, abstractmethod
 from sklearn.metrics import confusion_matrix
 from sklearn import metrics
 from itertools import cycle
 from typing import List
 from mlrun.artifacts import PlotArtifact
-from plan import ArtifactPlan
-
+from .plan import ArtifactPlan, ProductionStages
 
 class ArtifactLibrary(ABC):
     """
