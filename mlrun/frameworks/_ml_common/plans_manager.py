@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 from mlrun.artifacts import Artifact
-from plan import ArtifactPlan, ProductionStages
+from .._ml_common.plan import ArtifactPlan, ProductionStages
 
 class ArtifactsPlansManager:
     def __init__(self, plans: List[ArtifactPlan]):

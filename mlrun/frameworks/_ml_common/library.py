@@ -9,7 +9,8 @@ from sklearn import metrics
 from itertools import cycle
 from typing import List
 from mlrun.artifacts import PlotArtifact
-from .plan import ArtifactPlan, ProductionStages
+from .._ml_common.plan import ArtifactPlan, ProductionStages
+
 
 class ArtifactLibrary(ABC):
     """
