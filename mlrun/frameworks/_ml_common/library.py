@@ -138,15 +138,13 @@ class ConfusionMatrix(ArtifactPlan):
         fig = ff.create_annotated_heatmap(cm, x=x, y=x, annotation_text=cm.astype(str), colorscale='Blues')
 
         # add title
-        fig.update_layout(title_text='<i><b>Confusion matrix</b></i>',
-                          # xaxis = dict(title='x'),
-                          # yaxis = dict(title='x')
+        fig.update_layout(title_text='Confusion matrix',
                           )
 
         # add custom xaxis title
         fig.add_annotation(dict(font=dict(color="black", size=14),
                                 x=0.5,
-                                y=-0.15,
+                                y=-0.1,
                                 showarrow=False,
                                 text="Predicted value",
                                 xref="paper",
@@ -154,7 +152,7 @@ class ConfusionMatrix(ArtifactPlan):
 
         # add custom yaxis title
         fig.add_annotation(dict(font=dict(color="black", size=14),
-                                x=-0.35,
+                                x=-0.2,
                                 y=0.5,
                                 showarrow=False,
                                 text="Real value",
@@ -162,12 +160,11 @@ class ConfusionMatrix(ArtifactPlan):
                                 xref="paper",
                                 yref="paper"))
 
-        # Adding black lines around plot
         fig.update_xaxes(showline=True, linewidth=1, linecolor='black', mirror=True)
         fig.update_yaxes(showline=True, linewidth=1, linecolor='black', mirror=True)
 
         # adjust margins to make room for yaxis title
-        fig.update_layout(margin=dict(t=50, l=200))
+        fig.update_layout(margin=dict(t=100, l=100), width=500, height=500)
 
         # add colorbar
         fig['data'][0]['showscale'] = True
