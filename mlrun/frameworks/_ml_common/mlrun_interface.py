@@ -76,15 +76,18 @@ class MLMLRunInterface:
             train_set = pd.concat([x, y], axis=1)
             train_set.reset_index(drop=True, inplace=True)
 
+            plans_manager.generate(model=model, context=context, mystage=ProductionStages.POST_FIT,
+                                   apply_args=apply_args, **kwargs)
+
             if apply_args.get("X_test") is not None and apply_args.get("y_test") is not None:
 
                 # Identify splits and build test set
                 X_test, y_test = apply_args["X_test"], apply_args["y_test"]
 
-                y_pred = model.predict(X_test)
-                apply_args['y_pred'] = y_pred
+                # Predict on test set
+                apply_args['y_pred'] = model.predict(X_test)
 
-                plans_manager.generate(model=model, context=context, mystage=ProductionStages.POST_FIT,
+                plans_manager.generate(model=model, context=context, mystage=ProductionStages.POST_EVALUATION,
                                        apply_args=apply_args, **kwargs)
 
                 # Merge X and y for logging of the test set
