@@ -1,7 +1,7 @@
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import plotly.figure_factory as ff
 from abc import ABC, abstractmethod
 from sklearn.metrics import confusion_matrix
 from sklearn import metrics
@@ -31,56 +31,139 @@ class ArtifactLibrary(ABC):
         pass
 
 
-    class ROCCurves(ArtifactPlan):
+class ROCCurves(ArtifactPlan):
+    """
+    """
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self._extra_data = {}
+
+    def validate(self, *args, **kwargs):
+        pass
+
+    def is_ready(self, stage: ProductionStages) -> bool:
+        return stage == ProductionStages.POST_FIT
+
+    def produce(self, model, context, apply_args, plots_artifact_path="", **kwargs):
+        if hasattr(model, "predict_proba"):
+            y_scores = model.predict_proba(apply_args['X_test'])
+
+        # One hot encode the labels in order to plot them
+        y_onehot = pd.get_dummies(apply_args['y_test'], columns=model.classes_)
+
+        # Create an empty figure, and iteratively add new lines
+        # every time we compute a new class
+        fig = go.Figure()
+        fig.add_shape(
+            type='line', line=dict(dash='dash'),
+            x0=0, x1=1, y0=0, y1=1
+        )
+
+        for i in range(y_scores.shape[1]):
+            y_true = y_onehot.iloc[:, i]
+            y_score = y_scores[:, i]
+
+            fpr, tpr, _ = roc_curve(y_true, y_score)
+            auc_score = roc_auc_score(y_true, y_score)
+
+            name = f"{y_onehot.columns[i]} (AUC={auc_score:.2f})"
+            fig.add_trace(go.Scatter(x=fpr, y=tpr, name=name, mode='lines'))
+
+        fig.update_layout(
+            xaxis_title='False Positive Rate',
+            yaxis_title='True Positive Rate',
+            yaxis=dict(scaleanchor="x", scaleratio=1),
+            xaxis=dict(constrain='domain'),
+            width=700, height=500
+        )
+
+        # Creating an html rendering of the plot
+        plot_as_html = fig.to_html()
+        display(HTML(plot_as_html))
+
+
+
+class ConfusionMatrixPlotly(ArtifactPLan):
+
+    def __init__(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def validate(self, *args, **kwargs):
         """
+        Validate this plan has the required data to produce its artifact.
+
+        :raise ValueError: In case this plan is missing information in order to produce its artifact.
+        """
+        pass
+
+    @abstractmethod
+    def is_ready(self, stage: ProductionStages) -> bool:
+        return stage == ProductionStages.POST_FIT
+
+    @abstractmethod
+    def produce(self, *args, **kwargs) -> Artifact:
+        """
+        Produce the artifact according to this plan.
+
+        :return: The produced artifact.
         """
 
-        def __init__(self, **kwargs):
-            self.kwargs = kwargs
-            self._extra_data = {}
+        cm = confusion_matrix(
+            apply_args['y_test'],
+            apply_args['y_pred'],
+            labels=self._labels,
+            sample_weight=self._sample_weight,
+            normalize=self._normalize,
+        )
 
-        def validate(self, *args, **kwargs):
-            pass
+        x = np.sort(y_test[y_test.columns[0]].unique()).tolist()
 
-        def is_ready(self, stage: ProductionStages) -> bool:
-            return stage == ProductionStages.POST_FIT
+        # set up figure
+        fig = ff.create_annotated_heatmap(cm, x=x, y=x, annotation_text=cm.astype(str), colorscale='Blues')
 
-        def produce(self, model, context, apply_args, plots_artifact_path="", **kwargs):
-            if hasattr(model, "predict_proba"):
-                y_scores = model.predict_proba(apply_args['X_test'])
+        # add title
+        fig.update_layout(title_text='<i><b>Confusion matrix</b></i>',
+                          # xaxis = dict(title='x'),
+                          # yaxis = dict(title='x')
+                          )
 
-            # One hot encode the labels in order to plot them
-            y_onehot = pd.get_dummies(apply_args['y_test'], columns=model.classes_)
+        # add custom xaxis title
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=0.5,
+                                y=-0.15,
+                                showarrow=False,
+                                text="Predicted value",
+                                xref="paper",
+                                yref="paper"))
 
-            # Create an empty figure, and iteratively add new lines
-            # every time we compute a new class
-            fig = go.Figure()
-            fig.add_shape(
-                type='line', line=dict(dash='dash'),
-                x0=0, x1=1, y0=0, y1=1
-            )
+        # add custom yaxis title
+        fig.add_annotation(dict(font=dict(color="black", size=14),
+                                x=-0.35,
+                                y=0.5,
+                                showarrow=False,
+                                text="Real value",
+                                textangle=-90,
+                                xref="paper",
+                                yref="paper"))
 
-            for i in range(y_scores.shape[1]):
-                y_true = y_onehot.iloc[:, i]
-                y_score = y_scores[:, i]
+        # Adding black lines around plot
+        fig.update_xaxes(showline=True, linewidth=1, linecolor='black', mirror=True)
+        fig.update_yaxes(showline=True, linewidth=1, linecolor='black', mirror=True)
 
-                fpr, tpr, _ = roc_curve(y_true, y_score)
-                auc_score = roc_auc_score(y_true, y_score)
+        # adjust margins to make room for yaxis title
+        fig.update_layout(margin=dict(t=50, l=200))
 
-                name = f"{y_onehot.columns[i]} (AUC={auc_score:.2f})"
-                fig.add_trace(go.Scatter(x=fpr, y=tpr, name=name, mode='lines'))
+        # add colorbar
+        fig['data'][0]['showscale'] = True
+        fig['layout']['yaxis']['autorange'] = "reversed"
 
-            fig.update_layout(
-                xaxis_title='False Positive Rate',
-                yaxis_title='True Positive Rate',
-                yaxis=dict(scaleanchor="x", scaleratio=1),
-                xaxis=dict(constrain='domain'),
-                width=700, height=500
-            )
+        # Creating an html rendering of the plot
+        plot_as_html = fig.to_html()
+        display(HTML(plot_as_html))
 
-            # Creating an html rendering of the plot
-            plot_as_html = fig.to_html()
-            display(HTML(plot_as_html))
+
 
 
 class ConfusionMatrix(ArtifactPlan):
