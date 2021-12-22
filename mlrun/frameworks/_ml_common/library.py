@@ -1,22 +1,21 @@
 from typing import Any
 from enum import Enum
-
-import inspect
-
 from plotly.figure_factory import create_annotated_heatmap
 from typing import Dict
 from abc import ABC, abstractmethod
 from sklearn.metrics import confusion_matrix
-import plotly.graph_objects as go
-import pandas as pd
 from pandas.api.types import is_numeric_dtype
-import numpy as np
-import mlrun
 from sklearn.metrics import roc_curve, roc_auc_score
 from IPython.core.display import HTML, display
 from mlrun.artifacts import Artifact
 from sklearn.model_selection import learning_curve
 from sklearn.calibration import calibration_curve
+
+import inspect
+import plotly.graph_objects as go
+import pandas as pd
+import numpy as np
+import mlrun
 
 
 class PlanStages(Enum):
