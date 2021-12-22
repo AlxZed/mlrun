@@ -364,9 +364,9 @@ class ROCCurves(Plan):
     ):
         """
 
-        :param model:
-        :param X_test:
-        :param y_test: target set.
+        :param model: a fitted model
+        :param X_test: train dataset used to verified a fitted model.
+        :param y_test: target dataset.
         :param pos_label: The label of the positive class. When pos_label=None, if y_true is in {-1, 1} or {0, 1}, pos_label is set to 1, otherwise an error will be raised.
         :param sample_weight: Sample weights.
         :param drop_intermediate: Whether to drop some suboptimal thresholds which would not appear on a plotted ROC curve.
@@ -475,8 +475,8 @@ class FeatureImportance(Plan):
         X_train=None,
     ):
         """
-        :param model:
-        :param X_train:
+        :param model: any model pre-fit or post-fit.
+        :param X_train: train dataset.
         """
         validate_numerical(X_train)
 
@@ -564,9 +564,9 @@ class LearningCurves(Plan):
     ):
         """
 
-        :param model: a trained model.
-        :param X_train: your
-        :param y_train:
+        :param model: a fitted model.
+        :param X_train: training dataset.
+        :param y_train: target dataset.
         :param cv: Determines the cross-validation splitting strategy.
         :param groups: Group labels for the samples used while splitting the dataset into train/test set.
         :param train_sizes: Relative or absolute numbers of training examples that will be used to generate the learning curve.
@@ -700,9 +700,9 @@ class CalibrationCurve(Plan):
     ):
         """
 
-        :param model: a fitted model capable of using predict_proba
-        :param X_test:
-        :param y_test:
+        :param model: a fitted model with attributep redict_proba.
+        :param X_test: train dataset used to verified a fitted model.
+        :param y_test: target dataset.
         :param normalize:Whether y_prob needs to be normalized into the [0, 1] interval, i.e. is not a proper probability.
         :param n_bins: Number of bins to discretize the [0, 1] interval.
         :param strategy: Strategy used to define the widths of the bins.
