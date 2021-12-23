@@ -237,7 +237,7 @@ def validate_numerical(dataset):
 
 class ConfusionMatrixPlan(Plan):
     """
-    Compute confusion matrix to plot the accuracy of a classification with Plotly.
+    Plot accuracy of a classification with a Confusion Matrix.
     """
 
     _ARTIFACT_NAME = "confusion_matrix"
@@ -353,7 +353,10 @@ class ConfusionMatrixPlan(Plan):
 
 
 class ROCCurves(Plan):
-    """ """
+    """
+    Plot Receiver operating characteristic (ROC). Shows in a graphical way the connection/trade-off between clinical
+    sensitivity and specificity for every possible cut-off for a test or a combination of tests.
+    """
 
     _ARTIFACT_NAME = "roc_curves"
 
@@ -473,7 +476,9 @@ class ROCCurves(Plan):
 
 
 class FeatureImportance(Plan):
-    """ """
+    """
+    Plot Feature Importances within a dataset.
+    """
 
     _ARTIFACT_NAME = "feature_importance"
 
@@ -547,7 +552,7 @@ class FeatureImportance(Plan):
 
 class LearningCurves(Plan):
     """
-    Determines cross-validated training and test scores for different training set sizes.
+    Plot cross-validated training and test scores for different training set sizes.
     """
 
     _ARTIFACT_NAME = "learning_curves"
