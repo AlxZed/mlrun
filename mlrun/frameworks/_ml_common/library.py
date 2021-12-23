@@ -1,7 +1,6 @@
-from typing import Any
+from typing import Any, Dict
 from enum import Enum
 from plotly.figure_factory import create_annotated_heatmap
-from typing import Dict
 from abc import ABC, abstractmethod
 from sklearn.metrics import confusion_matrix
 from pandas.api.types import is_numeric_dtype
@@ -104,6 +103,9 @@ class Plan(ABC):
         :param given_parameters: The given parameters to check.
 
         :return: True if the plan is producible and False if not.
+
+        :raise MLRunInvalidArgumentError: If some of the required parameters were provided but not all of them in order
+                                          to make sure a proper usage of the initialization method.
         """
         # Get this plan's produce method required parameters:
         required_parameters = [
@@ -112,7 +114,7 @@ class Plan(ABC):
                 self.produce
             ).parameters.items()
             if parameter_object.default == parameter_object.empty
-            and parameter_object.name != "kwargs"
+            and parameter_object.name not in ["args", "kwargs"]
         ]
 
         # Parse the given parameters into a list of the actual given (not None) parameters:
@@ -122,13 +124,19 @@ class Plan(ABC):
             if parameter_value is not None
         ]
 
-        # Return True only if all of the required parameters are available from the given parameters:
-        return all(
-            [
-                required_parameter in given_parameters
-                for required_parameter in required_parameters
-            ]
-        )
+        # Validate that if some of the required parameters are passed, all of them are:
+        missing_parameters = [
+            required_parameter
+            for required_parameter in required_parameters
+            if required_parameter not in given_parameters
+        ]
+        if 0 < len(missing_parameters) < len(required_parameters):
+            raise mlrun.errors.MLRunInvalidArgumentError(
+                f"Artifact cannot be produced. Some of the required arguments are missing: {missing_parameters}."
+            )
+
+        # Return True only if all the required parameters are given:
+        return len(missing_parameters) == 0
 
     def _repr_pretty_(self, p, cycle: bool):
         """
@@ -244,8 +252,6 @@ class ConfusionMatrixPlan(Plan):
         :param y_test: Ground truth (correct) target values.
         :param y_pred: Estimated targets as returned by a classifier.
         """
-        validate_numerical(y_test)
-        validate_numerical(y_pred)
 
         # confusion_matrix() parameters
         self._labels = labels
@@ -269,6 +275,9 @@ class ConfusionMatrixPlan(Plan):
         :param y_test: Ground truth (correct) target values.
         :return: The produced artifacts.
         """
+        validate_numerical(y_test)
+        validate_numerical(y_pred)
+
         cm = confusion_matrix(
             y_test,
             y_pred,
@@ -375,9 +384,6 @@ class ROCCurves(Plan):
         :param labels: Only used for multiclass targets. List of labels that index the classes in y_score
         """
 
-        validate_numerical(X_test)
-        validate_numerical(y_test)
-
         self._pos_label = pos_label
         self.sample_weight = sample_weight
         self.drop_intermediate = drop_intermediate
@@ -401,6 +407,9 @@ class ROCCurves(Plan):
         Produce the artifact according to this plan.
         :return: The produced artifact.
         """
+        validate_numerical(X_test)
+        validate_numerical(y_test)
+
         if hasattr(model, "predict_proba"):
             y_scores = model.predict_proba(X_test)
 
@@ -477,7 +486,6 @@ class FeatureImportance(Plan):
         :param model: any model pre-fit or post-fit.
         :param X_train: train dataset.
         """
-        validate_numerical(X_train)
 
         super(FeatureImportance, self).__init__(model=model, X_train=X_train)
 
@@ -494,6 +502,7 @@ class FeatureImportance(Plan):
         Produce the artifact according to this plan.
         :return: The produced artifact.
         """
+        validate_numerical(X_train)
         if hasattr(model, "feature_importances_") or hasattr(model, "coef_"):
 
             # Tree-based feature importance
@@ -579,8 +588,6 @@ class LearningCurves(Plan):
         :param return_times: Value to assign to the score if an error occurs in estimator fitting.
         :param fit_params: Parameters to pass to the fit method of the estimator.
         """
-        validate_numerical(X_train)
-        validate_numerical(y_train)
 
         # learning_curve() params
         self._groups = groups
@@ -609,6 +616,8 @@ class LearningCurves(Plan):
         return stage == PlanStages.POST_FIT
 
     def produce(self, model, X_train, y_train, **kwargs) -> Dict[str, PlotlyArtifact]:
+        validate_numerical(X_train)
+        validate_numerical(y_train)
 
         train_sizes, train_scores, test_scores, fit_times, _ = learning_curve(
             model,
@@ -706,8 +715,6 @@ class CalibrationCurve(Plan):
         :param n_bins: Number of bins to discretize the [0, 1] interval.
         :param strategy: Strategy used to define the widths of the bins.
         """
-        validate_numerical(X_test)
-        validate_numerical(y_test)
 
         # calibration_curve() parameters
         self._normalize = normalize
@@ -727,6 +734,8 @@ class CalibrationCurve(Plan):
         return stage == PlanStages.POST_FIT
 
     def produce(self, model, X_test, y_test, **kwargs) -> Dict[str, PlotlyArtifact]:
+        validate_numerical(X_test)
+        validate_numerical(y_test)
 
         if hasattr(model, "predict_proba"):
             probs = model.predict_proba(X_test)[:, 1]
