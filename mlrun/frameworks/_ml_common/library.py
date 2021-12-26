@@ -405,7 +405,7 @@ class ROCCurves(Plan):
         """
         return stage == PlanStages.POST_FIT
 
-    def produce(self, model, X_test, y_test, **kwargs) -> Dict[str, PlotlyArtifact]:
+    def produce(self, model, X_test, y_test, y_prob, **kwargs) -> Dict[str, PlotlyArtifact]:
         """
         Produce the artifact according to this plan.
         :return: The produced artifact.
@@ -413,56 +413,53 @@ class ROCCurves(Plan):
         validate_numerical(X_test)
         validate_numerical(y_test)
 
-        if hasattr(model, "predict_proba"):
-            y_scores = model.predict_proba(X_test)
+        # One hot encode the labels in order to plot them
+        y_onehot = pd.get_dummies(y_test, columns=y_test.columns.to_list())
 
-            # One hot encode the labels in order to plot them
-            y_onehot = pd.get_dummies(y_test, columns=y_test.columns.to_list())
+        # Create an empty figure, and iteratively add new lines
+        # every time we compute a new class
+        fig = go.Figure()
+        fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
 
-            # Create an empty figure, and iteratively add new lines
-            # every time we compute a new class
-            fig = go.Figure()
-            fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
+        for i in range(y_prob.shape[1]):
+            y_true = y_onehot.iloc[:, i]
+            y_score = y_prob[:, i]
 
-            for i in range(y_scores.shape[1]):
-                y_true = y_onehot.iloc[:, i]
-                y_score = y_scores[:, i]
-
-                fpr, tpr, _ = roc_curve(
-                    y_true,
-                    y_score,
-                    pos_label=self._pos_label,
-                    sample_weight=self._sample_weight,
-                    drop_intermediate=self._drop_intermediate,
-                )
-
-                auc_score = roc_auc_score(
-                    y_true,
-                    y_score,
-                    average=self._average,
-                    sample_weight=self._sample_weight,
-                    max_fpr=self._max_fpr,
-                    multi_class=self._multi_class,
-                    labels=self._labels,
-                )
-
-                name = f"{y_onehot.columns[i]} (AUC={auc_score:.2f})"
-                fig.add_trace(go.Scatter(x=fpr, y=tpr, name=name, mode="lines"))
-
-            fig.update_layout(
-                xaxis_title="False Positive Rate",
-                yaxis_title="True Positive Rate",
-                yaxis=dict(scaleanchor="x", scaleratio=1),
-                xaxis=dict(constrain="domain"),
-                width=700,
-                height=500,
+            fpr, tpr, _ = roc_curve(
+                y_true,
+                y_score,
+                pos_label=self._pos_label,
+                sample_weight=self._sample_weight,
+                drop_intermediate=self._drop_intermediate,
             )
 
-            # Creating an html rendering of the plot
-            self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
-                figure=fig, key=self._ARTIFACT_NAME
+            auc_score = roc_auc_score(
+                y_true,
+                y_score,
+                average=self._average,
+                sample_weight=self._sample_weight,
+                max_fpr=self._max_fpr,
+                multi_class=self._multi_class,
+                labels=self._labels,
             )
-            return self._artifacts
+
+            name = f"{y_onehot.columns[i]} (AUC={auc_score:.2f})"
+            fig.add_trace(go.Scatter(x=fpr, y=tpr, name=name, mode="lines"))
+
+        fig.update_layout(
+            xaxis_title="False Positive Rate",
+            yaxis_title="True Positive Rate",
+            yaxis=dict(scaleanchor="x", scaleratio=1),
+            xaxis=dict(constrain="domain"),
+            width=700,
+            height=500,
+        )
+
+        # Creating an html rendering of the plot
+        self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
+            figure=fig, key=self._ARTIFACT_NAME
+        )
+        return self._artifacts
 
     def display(self):
         """
@@ -514,8 +511,8 @@ class FeatureImportance(Plan):
             if hasattr(model, "feature_importances_"):
                 importance_score = model.feature_importances_
 
-            # Coefficient-based importance|
-            elif hasattr(model, "coef_"):
+            else:
+                # Coefficient-based importance
                 importance_score = model.coef_[0]
 
             df = pd.DataFrame(
@@ -536,7 +533,7 @@ class FeatureImportance(Plan):
             return self._artifacts
         else:
             raise mlrun.errors.MLRunInvalidArgumentError(
-                "This model cannot be used for FeatureImportance plotting."
+                "This model cannot be used for Feature Importance plotting."
             )
 
     def display(self):
@@ -738,64 +735,62 @@ class CalibrationCurve(Plan):
         """
         return stage == PlanStages.POST_FIT
 
-    def produce(self, model, X_test, y_test, **kwargs) -> Dict[str, PlotlyArtifact]:
+    def produce(self, model, X_test, y_test, y_prob, **kwargs) -> Dict[str, PlotlyArtifact]:
         validate_numerical(X_test)
         validate_numerical(y_test)
 
-        if hasattr(model, "predict_proba"):
-            probs = model.predict_proba(X_test)[:, 1]
-            prob_true, prob_pred = calibration_curve(
-                y_test,
-                probs,
-                n_bins=self._n_bins,
-                normalize=self._normalize,
-                strategy=self._strategy,
-            )
+        prob_true, prob_pred = calibration_curve(
+            y_test,
+            y_prob,
+            n_bins=self._n_bins,
+            normalize=self._normalize,
+            strategy=self._strategy,
+        )
 
-            fig = go.Figure(
-                data=[go.Scatter(x=prob_true, y=prob_pred)],
-                layout=dict(title=dict(text="Calibration Curve")),
-            )
+        fig = go.Figure(
+            data=[go.Scatter(x=prob_true, y=prob_pred)],
+            layout=dict(title=dict(text="Calibration Curve")),
+        )
 
-            # add custom xaxis title
-            fig.add_annotation(
-                dict(
-                    font=dict(color="black", size=14),
-                    x=0.5,
-                    y=-0.15,
-                    showarrow=False,
-                    text="prob_true",
-                    xref="paper",
-                    yref="paper",
-                )
+        # add custom xaxis title
+        fig.add_annotation(
+            dict(
+                font=dict(color="black", size=14),
+                x=0.5,
+                y=-0.15,
+                showarrow=False,
+                text="prob_true",
+                xref="paper",
+                yref="paper",
             )
+        )
 
-            # add custom yaxis title
-            fig.add_annotation(
-                dict(
-                    font=dict(color="black", size=14),
-                    x=-0.1,
-                    y=0.5,
-                    showarrow=False,
-                    text="prob_pred",
-                    textangle=-90,
-                    xref="paper",
-                    yref="paper",
-                )
+        # add custom yaxis title
+        fig.add_annotation(
+            dict(
+                font=dict(color="black", size=14),
+                x=-0.1,
+                y=0.5,
+                showarrow=False,
+                text="prob_pred",
+                textangle=-90,
+                xref="paper",
+                yref="paper",
             )
+        )
 
-            # adjust margins to make room for yaxis title
-            fig.update_layout(margin=dict(t=100, l=100), width=800, height=500)
+        # adjust margins to make room for yaxis title
+        fig.update_layout(margin=dict(t=100, l=100), width=800, height=500)
 
-            # Creating an html rendering of the plot
-            self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
-                figure=fig, key=self._ARTIFACT_NAME
-            )
-            return self._artifacts
-        else:
-            raise mlrun.errors.MLRunInvalidArgumentError(
-                "This model cannot be used for CalibrationCurve plotting."
-            )
+        # Creating an html rendering of the plot
+        self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
+            figure=fig, key=self._ARTIFACT_NAME
+        )
+        return self._artifacts
+    else:
+        raise mlrun.errors.MLRunInvalidArgumentError(
+            "This model cannot be used for CalibrationCurve plotting."
+        )
 
     def display(self):
         """
