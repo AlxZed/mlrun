@@ -300,36 +300,32 @@ class ConfusionMatrixPlan(Plan):
 
         # add custom xaxis title
         figure.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=0.5,
-                y=-0.1,
-                showarrow=False,
-                text="Predicted value",
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': 0.5,
+             'y': -0.1,
+             'showarrow': False,
+             'text': 'Predicted value',
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         # add custom yaxis title
         figure.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=-0.2,
-                y=0.5,
-                showarrow=False,
-                text="Real value",
-                textangle=-90,
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': -0.2,
+             'y': 0.5,
+             'showarrow': False,
+             'text': 'Real value',
+             'textangle': -90,
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         figure.update_xaxes(showline=True, linewidth=1, linecolor="black", mirror=True)
         figure.update_yaxes(showline=True, linewidth=1, linecolor="black", mirror=True)
 
         # adjust margins to make room for yaxis title
-        figure.update_layout(margin=dict(t=100, l=100), width=500, height=500)
+        figure.update_layout(margin={'t': 100, 'l': 100}, width=500, height=500)
 
         # add colorbar
         figure["data"][0]["showscale"] = True
@@ -419,7 +415,7 @@ class ROCCurves(Plan):
         # Create an empty figure, and iteratively add new lines
         # every time we compute a new class
         fig = go.Figure()
-        fig.add_shape(type="line", line=dict(dash="dash"), x0=0, x1=1, y0=0, y1=1)
+        fig.add_shape(type="line", line={'dash': 'dash'}, x0=0, x1=1, y0=0, y1=1)
 
         for i in range(y_prob.shape[1]):
             y_true = y_onehot.iloc[:, i]
@@ -449,8 +445,8 @@ class ROCCurves(Plan):
         fig.update_layout(
             xaxis_title="False Positive Rate",
             yaxis_title="True Positive Rate",
-            yaxis=dict(scaleanchor="x", scaleratio=1),
-            xaxis=dict(constrain="domain"),
+            yaxis={'scaleanchor': 'x', 'scaleratio': 1},
+            xaxis={'constrain': 'domain'},
             width=700,
             height=500,
         )
@@ -641,38 +637,34 @@ class LearningCurves(Plan):
 
         fig = go.Figure(
             data=[go.Scatter(x=train_sizes.tolist(), y=np.mean(train_scores, axis=1))],
-            layout=dict(title=dict(text="Learning Curves")),
+            layout={'title': {'text': 'Learning Curves'}},
         )
 
         # add custom xaxis title
         fig.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=0.5,
-                y=-0.15,
-                showarrow=False,
-                text="Train Size",
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': 0.5,
+             'y': -0.15,
+             'showarrow': False,
+             'text': 'Train Size',
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         # add custom yaxis title
         fig.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=-0.1,
-                y=0.5,
-                showarrow=False,
-                text="Score",
-                textangle=-90,
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': -0.1,
+             'y': 0.5,
+             'showarrow': False,
+             'text': 'Score',
+             'textangle': -90,
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         # adjust margins to make room for yaxis title
-        fig.update_layout(margin=dict(t=100, l=100), width=800, height=500)
+        fig.update_layout(margin={'t': 100, 'l': 100}, width=800, height=500)
 
         # Creating an html rendering of the plot
         self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
@@ -749,38 +741,34 @@ class CalibrationCurve(Plan):
 
         fig = go.Figure(
             data=[go.Scatter(x=prob_true, y=prob_pred)],
-            layout=dict(title=dict(text="Calibration Curve")),
+            layout={'title': {'text': 'Calibration Curve'}},
         )
 
         # add custom xaxis title
         fig.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=0.5,
-                y=-0.15,
-                showarrow=False,
-                text="prob_true",
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': 0.5,
+             'y': -0.15,
+             'showarrow': False,
+             'text': 'prob_true',
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         # add custom yaxis title
         fig.add_annotation(
-            dict(
-                font=dict(color="black", size=14),
-                x=-0.1,
-                y=0.5,
-                showarrow=False,
-                text="prob_pred",
-                textangle=-90,
-                xref="paper",
-                yref="paper",
-            )
+            {'font': {'color': 'black', 'size': 14},
+             'x': -0.1,
+             'y': 0.5,
+             'showarrow': False,
+             'text': 'prob_pred',
+             'textangle': -90,
+             'xref': 'paper',
+             'yref': 'paper'}
         )
 
         # adjust margins to make room for yaxis title
-        fig.update_layout(margin=dict(t=100, l=100), width=800, height=500)
+        fig.update_layout(margin={'t': 100, 'l': 100}, width=800, height=500)
 
         # Creating an html rendering of the plot
         self._artifacts[self._ARTIFACT_NAME] = PlotlyArtifact(
